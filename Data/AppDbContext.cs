@@ -10,6 +10,6 @@ namespace Suppliers.API.Data
         {
         }
 
-        public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<Supplier> Suppliers => Set<Supplier>();
     }
 }

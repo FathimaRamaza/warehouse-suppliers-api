@@ -6,18 +6,18 @@ namespace Suppliers.API.Models
     {
         public int SupplierId { get; set; }
 
-        [Required(ErrorMessage = "Supplier name is required")]
-        [StringLength(100, ErrorMessage = "Supplier name cannot exceed 100 characters")]
+        [Required]
+        [MaxLength(100)]
         public string SupplierName { get; set; } = string.Empty;
 
-        [EmailAddress(ErrorMessage = "Invalid email address")]
+        [EmailAddress]
         public string? Email { get; set; }
 
-        [Phone(ErrorMessage = "Invalid phone number")]
+        [MaxLength(15)]
         public string? Phone { get; set; }
 
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; }
     }
 }

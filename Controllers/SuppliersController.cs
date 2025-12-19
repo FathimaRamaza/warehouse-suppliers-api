@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Suppliers.API.Data;
 using Suppliers.API.Models;
+using Suppliers.API.Services;
 
 namespace Suppliers.API.Controllers
 {
@@ -9,89 +8,76 @@ namespace Suppliers.API.Controllers
     [Route("api/[controller]")]
     public class SuppliersController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly ISupplierService _service;
 
-        public SuppliersController(AppDbContext context)
+        public SuppliersController(ISupplierService service)
         {
-            _context = context;
+            _service = service;
         }
 
-        // GET: api/suppliers?search=abc
+        // GET /api/suppliers?search=abc
         [HttpGet]
-        public async Task<IActionResult> GetSuppliers([FromQuery] string? search)
+        public async Task<IActionResult> GetAll([FromQuery] string? search)
         {
-            IQueryable<Supplier> query = _context.Suppliers;
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(s =>
-                    s.SupplierName.Contains(search) ||
-                    (s.Email != null && s.Email.Contains(search)) ||
-                    (s.Phone != null && s.Phone.Contains(search))
-                );
-            }
-
-            var suppliers = await query.ToListAsync();
-            return Ok(suppliers);
+            return Ok(await _service.GetAllAsync(search));
         }
 
-        // GET: api/suppliers/{id}
+        // GET /api/suppliers/{id}
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetSupplierById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var supplier = await _context.Suppliers.FindAsync(id);
-
-            if (supplier == null)
-                return NotFound();
-
+            var supplier = await _service.GetByIdAsync(id);
+            if (supplier == null) return NotFound();
             return Ok(supplier);
         }
 
-        // POST: api/suppliers
+        // POST /api/suppliers
         [HttpPost]
-        public async Task<IActionResult> CreateSupplier(Supplier supplier)
+        public async Task<IActionResult> Create(Supplier supplier)
         {
-            _context.Suppliers.Add(supplier);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(
-                nameof(GetSupplierById),
-                new { id = supplier.SupplierId },
-                supplier
-            );
+            try
+            {
+                var created = await _service.CreateAsync(supplier);
+                return CreatedAtAction(nameof(GetById),
+                    new { id = created.SupplierId }, created);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        // PUT: api/suppliers/{id}
+        // PUT /api/suppliers/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateSupplier(int id, Supplier updatedSupplier)
+        public async Task<IActionResult> Update(int id, Supplier supplier)
         {
-            var existingSupplier = await _context.Suppliers.FindAsync(id);
-
-            if (existingSupplier == null)
-                return NotFound();
-
-            existingSupplier.SupplierName = updatedSupplier.SupplierName;
-            existingSupplier.Email = updatedSupplier.Email;
-            existingSupplier.Phone = updatedSupplier.Phone;
-            existingSupplier.IsActive = updatedSupplier.IsActive;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(existingSupplier);
+            try
+            {
+                var updated = await _service.UpdateAsync(id, supplier);
+                if (!updated) return NotFound();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        // DELETE: api/suppliers/{id}
+        // DELETE /api/suppliers/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSupplier(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var supplier = await _context.Suppliers.FindAsync(id);
+            var deleted = await _service.DeleteAsync(id);
+            if (!deleted) return NotFound();
+            return NoContent();
+        }
 
-            if (supplier == null)
-                return NotFound();
-
-            _context.Suppliers.Remove(supplier);
-            await _context.SaveChangesAsync();
-
+        // PUT /api/suppliers/{id}/status?isActive=true
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromQuery] bool isActive)
+        {
+            var updated = await _service.UpdateStatusAsync(id, isActive);
+            if (!updated) return NotFound();
             return NoContent();
         }
     }

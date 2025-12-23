@@ -13,17 +13,50 @@ namespace Suppliers.API.Services
             _context = context;
         }
 
-        // GET ALL + SEARCH
-        public async Task<List<Supplier>> GetAllAsync(string? search)
+        // GET ALL + SEARCH + FILTER + SORT + PAGINATION
+        public async Task<List<Supplier>> GetAllAsync(
+            int page,
+            int pageSize,
+            string? search,
+            string? sortBy,
+            string? sortOrder,
+            bool? isActive)
         {
             var query = _context.Suppliers.AsQueryable();
 
+            //  FILTERING
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(s =>
                     s.SupplierName.Contains(search) ||
                     (s.Email != null && s.Email.Contains(search)));
             }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(s => s.IsActive == isActive.Value);
+            }
+
+            //  SORTING
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                if (sortBy.ToLower() == "name")
+                {
+                    query = sortOrder == "desc"
+                        ? query.OrderByDescending(s => s.SupplierName)
+                        : query.OrderBy(s => s.SupplierName);
+                }
+                else if (sortBy.ToLower() == "createdat")
+                {
+                    query = sortOrder == "desc"
+                        ? query.OrderByDescending(s => s.CreatedAt)
+                        : query.OrderBy(s => s.CreatedAt);
+                }
+            }
+
+            //  PAGINATION
+            int skip = (page - 1) * pageSize;
+            query = query.Skip(skip).Take(pageSize);
 
             return await query.ToListAsync();
         }
@@ -37,11 +70,9 @@ namespace Suppliers.API.Services
         // CREATE (WITH BUSINESS RULES)
         public async Task<Supplier> CreateAsync(Supplier supplier)
         {
-            // Business rule: duplicate name
             if (await _context.Suppliers.AnyAsync(s => s.SupplierName == supplier.SupplierName))
                 throw new Exception("Supplier name already exists.");
 
-            // Business rule: duplicate email
             if (!string.IsNullOrEmpty(supplier.Email) &&
                 await _context.Suppliers.AnyAsync(s => s.Email == supplier.Email))
                 throw new Exception("Supplier email already exists.");
@@ -61,7 +92,6 @@ namespace Suppliers.API.Services
             var existing = await _context.Suppliers.FindAsync(id);
             if (existing == null) return false;
 
-            // Business rule: inactive supplier cannot be updated
             if (!existing.IsActive)
                 throw new Exception("Inactive suppliers cannot be updated.");
 

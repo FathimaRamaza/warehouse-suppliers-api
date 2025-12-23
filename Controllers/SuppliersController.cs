@@ -15,66 +15,65 @@ namespace Suppliers.API.Controllers
             _service = service;
         }
 
-        // GET /api/suppliers?search=abc
+        // GET: api/suppliers
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? search)
+        public async Task<IActionResult> GetSuppliers(
+            int page = 1,
+            int pageSize = 10,
+            string? search = null,
+            string? sortBy = null,
+            string? sortOrder = "asc",
+            bool? isActive = null)
         {
-            return Ok(await _service.GetAllAsync(search));
+            var suppliers = await _service.GetAllAsync(
+                page,
+                pageSize,
+                search,
+                sortBy,
+                sortOrder,
+                isActive);
+
+            return Ok(suppliers);
         }
 
-        // GET /api/suppliers/{id}
+        // GET: api/suppliers/{id}
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetSupplier(int id)
         {
             var supplier = await _service.GetByIdAsync(id);
             if (supplier == null) return NotFound();
             return Ok(supplier);
         }
 
-        // POST /api/suppliers
+        // POST: api/suppliers
         [HttpPost]
-        public async Task<IActionResult> Create(Supplier supplier)
+        public async Task<IActionResult> CreateSupplier(Supplier supplier)
         {
-            try
-            {
-                var created = await _service.CreateAsync(supplier);
-                return CreatedAtAction(nameof(GetById),
-                    new { id = created.SupplierId }, created);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var created = await _service.CreateAsync(supplier);
+            return Ok(created);
         }
 
-        // PUT /api/suppliers/{id}
+        // PUT: api/suppliers/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Supplier supplier)
+        public async Task<IActionResult> UpdateSupplier(int id, Supplier supplier)
         {
-            try
-            {
-                var updated = await _service.UpdateAsync(id, supplier);
-                if (!updated) return NotFound();
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var updated = await _service.UpdateAsync(id, supplier);
+            if (!updated) return NotFound();
+            return NoContent();
         }
 
-        // DELETE /api/suppliers/{id}
+        // DELETE: api/suppliers/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> DeleteSupplier(int id)
         {
             var deleted = await _service.DeleteAsync(id);
             if (!deleted) return NotFound();
             return NoContent();
         }
 
-        // PUT /api/suppliers/{id}/status?isActive=true
-        [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(int id, [FromQuery] bool isActive)
+        // PATCH: api/suppliers/{id}/status
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, bool isActive)
         {
             var updated = await _service.UpdateStatusAsync(id, isActive);
             if (!updated) return NotFound();
